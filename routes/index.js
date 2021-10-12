@@ -4,6 +4,8 @@ const Book = require('../models/book')
 
 router.get('/', async(req, res) => {
     let books
+
+    // Tries to find the latest 10 books, sets books as empty in case of an error
     try{
         books = await Book.find().sort({createdAt:"desc"}).limit(10).exec()
     } catch {
