@@ -1,18 +1,8 @@
 const express = require('express')
 const router = express.Router()
 const Author = require('../models/author')
-const fs = require('fs')
-const path = require('path')
 const Book = require('../models/book')
-const uploadPath = path.join('public', Book.coverImagePath)
-const multer = require('multer')
-const imageMimeTypes = ['image/jpeg', 'image/png', 'image/gif']
-const upload = multer({
-    dest: uploadPath,
-    fileFilter: (req, file, callback) => {
-        callback(null, true, false)
-    }
-})
+const imageMimeTypes = ['image/jpeg', 'image/png', 'images/gif']
 
 //Route for getting all books
 router.get('/', async (req, res) => {
@@ -44,24 +34,24 @@ router.get('/new', async (req, res) => {
 })
 
 //Route for creating a book
-router.post('/', upload.single('cover'),async (req, res) => {
-    const fileName = req.file ? req.file.filename : null
+router.post('/', async (req, res) => {
+    
     const book = new Book({
         title: req.body.title,
         author: req.body.Author,
         publishDate: new Date(req.body.publishDate),
         pageCount: req.body.pageCount,
-        coverImage: fileName,
         description: req.body.description
 
     })
+
+    saveCover(book, req.body.cover)
 
     try {
         const newBook = await book.save()
         //res.redirect(`books\${newBook.id}`)
         res.redirect('books')
     } catch(err){
-        if (book.coverImage != null) removeBookCover(book.coverImage)
         renderNewPage(res, book, true)
     }
 })
@@ -79,10 +69,15 @@ async function renderNewPage(res, book, hasError=false){
         res.redirect('/books')
     }
 }
-function removeBookCover(fileName){
-    fs.unlink(path.join(uploadPath, fileName), err => {
-       if (err) console.error(err)
-    })
+
+
+function saveCover(book, image){
+    if (image == null) return
+    const coverImage = JSON.parse(image)
+    if (coverImage != null && imageMimeTypes.includes(coverImage.type)){
+        book.coverImage = new Buffer.from(coverImage.data, 'base64')
+        book.coverImageType= coverImage.type
+    }
 }
 
 
