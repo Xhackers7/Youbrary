@@ -1,6 +1,7 @@
 const express = require('express')
 const expressLayouts = require('express-ejs-layouts')
 const mongoose = require('mongoose')
+const methodOverride = require('method-override')
 
 
 if (process.env.NODE_ENV !== 'production') require('dotenv').config() // Get all the development config settings  if the app is not running on a production environment
@@ -16,8 +17,9 @@ app.set('view engine', 'ejs')
 app.set('views', __dirname + '/views')
 app.set('layout', 'layouts/layout')
 app.use(expressLayouts)
+app.use(methodOverride('_method'))
 app.use(express.static('public'))
-app.use(express.urlencoded({limit: "10mb", extended: false}))
+app.use(express.urlencoded({limit: "5mb", extended: false}))
 
 mongoose.connect(process.env.DATABASE_URL)
 
