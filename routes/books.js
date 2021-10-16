@@ -61,12 +61,71 @@ router.post('/', async (req, res) => {
     // Try to save the new book to the database and call the renderNewPage function in the case of an error
     try {
         const newBook = await book.save()
-        //res.redirect(`books\${newBook.id}`)
-        res.redirect('books')
+        res.redirect(`books/${newBook.id}`)
     } catch(err){
         renderNewPage(res, book, true)
     }
 })
+
+// Route for viewing books
+router.get('/:id', async (req, res) => {
+    try{
+        const book = await Book.findById(req.params.id).populate('author').exec()
+        res.render('books/show', {book:book})
+    } catch {
+        res.redirect('/')
+    }
+})
+
+// Route for editing books
+router.get('/:id/edit', async (req, res) => {
+    try {
+        const book = await Book.findById(req.params.id)
+        renderEditPage(res, book)
+    } catch (err) {
+        console.error(err)
+        res.redirect('/')
+    }
+})
+
+router.delete('/:id', async (req, res) => {
+    let book
+    try {
+        book = await Book.findById(req.params.id)
+        await book.remove()
+        res.redirect('/books')
+    } catch {
+        if (book != null){
+            res.render('books/show', {book, errorMsg: 'Couldn\'t delete that book'})
+        } else {
+            res.redirect('/')
+        }
+    }
+})
+
+router.put('/:id', async (req, res) => {
+    
+    // Create a new book object with the given details
+    let book
+
+    // Try to edit the book to the database and call the renderEditPage function in the case of an error
+    try {
+        book = await Book.findById(req.params.id)
+        book.title = req.body.title
+        book.author = req.body.Author
+        book.publishDate = req.body.publishDate
+        book.pageCount = req.body.pageCount
+        book.description = req.body.description
+        if(req.body.cover != null && req.body.cover != '') saveCover(book, req.body.cover)
+        await book.save()
+        res.redirect(`/books/${book.id}`)
+    } catch (err){
+        console.log(err)
+        if (book != null) return renderEditPage(res, book, true)
+        res.redirect('/')
+    }
+})
+
 
 /* Function to render /books/new page. Has 3 arguments: 
 res is the response object of the server, 
@@ -76,14 +135,27 @@ hasError is true if the function is called in case of an error else its false
 async function renderNewPage(res, book, hasError=false){
 
     // Try to find all authors and pass it to the view, redirects to /books page in case of an error
+    renderFormPage(res, book, 'new', hasError)
+}
+
+async function renderEditPage(res, book, hasError=false){
+    renderFormPage(res, book, 'edit', hasError)
+}
+
+async function renderFormPage(res, book, form, hasError=false){
+
+    // Try to find all authors and pass it to the view, redirects to /books page in case of an error
     try {
         const authors = await Author.find({})
         const params = {
             authors: authors,
             book: book
         }
-        if (hasError) params.errorMsg = 'Something went wrong while creating a new book'
-        res.render('books/new', params)
+        if (hasError) {
+            if (form === 'edit') params.errorMsg = 'Something went wrong while updating the book'
+            else params.errorMsg = 'Something went wrong while creating a new book'
+        }
+        res.render(`books/${form}`, params)
     } catch {
         res.redirect('/books')
     }
